@@ -73,7 +73,6 @@ classDiagram
         IN_PROGRESS, FINISHED
     }
 
-    %% --- DOMAIN ---
 
     class IRulesEngine {
         <<interface>>
