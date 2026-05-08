@@ -44,8 +44,17 @@ class YahtzeeViewModel(
     // Function to add a player to the pending players list
     fun addPlayer(name: String) {
         if (name.isBlank()) return
-        val id = randomUUID()
-        playerRepo.save(PlayerProfile(id, name, 1000, 0, 0f))
+
+        val allPlayers = playerRepo.getAll()
+        val existPlayer = allPlayers.find { it.name.equals(name, ignoreCase = true) }
+        val id =
+            existPlayer?.id ?: randomUUID().also { newId ->
+                playerRepo.save(PlayerProfile(newId, name, 1000, 0, 0f))
+            }
+
+        if (_uiState.value.pendingPlayers.containsKey(id)) {
+            return
+        }
 
         val newPlayers = _uiState.value.pendingPlayers.toMutableMap()
         newPlayers[id] = name
