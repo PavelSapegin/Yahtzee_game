@@ -43,7 +43,7 @@ class SqlitePlayerRepository : IPlayerRepository {
                     it[eloRating] = profile.eloRating
                     it[gamesPlayed] = profile.gamesPlayed
                     it[winRate] = profile.winRate
-                    it[wins] = profile.winRate.toInt() * profile.gamesPlayed
+                    it[wins] = (profile.winRate * profile.gamesPlayed).toInt()
                 }
             } else {
                 PlayersTable.insert {
@@ -52,7 +52,7 @@ class SqlitePlayerRepository : IPlayerRepository {
                     it[eloRating] = profile.eloRating
                     it[gamesPlayed] = profile.gamesPlayed
                     it[winRate] = profile.winRate
-                    it[wins] = profile.winRate.toInt() * profile.gamesPlayed
+                    it[wins] = (profile.winRate * profile.gamesPlayed).toInt()
                 }
             }
         }
