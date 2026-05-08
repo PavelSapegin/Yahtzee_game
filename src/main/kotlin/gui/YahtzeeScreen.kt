@@ -8,13 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -138,24 +140,40 @@ fun gameScreen(
             )
         }
 
-        if (state.errorText.isNotEmpty()) {
-            Text(text = state.errorText, color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Box(
+            modifier = Modifier.fillMaxWidth().height(30.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.errorText.isNotEmpty()) {
+                Text(text = state.errorText, color = Color.Red, style = MaterialTheme.typography.subtitle1)
+            }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // TABLE
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            if (state.scoreBoard.isNotEmpty()) {
-                scoreBoardTable(state, categorySelected = { cat ->
-                    submitMove(diceInput, cat)
-                    diceInput = ""
-                })
+        // TABLE + ASSIST
+        Row(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(modifier = Modifier.weight(0.7f).fillMaxHeight()) {
+                if (state.scoreBoard.isNotEmpty()) {
+                    scoreBoardTable(state, categorySelected = { cat ->
+                        submitMove(diceInput, cat)
+                        diceInput = ""
+                    })
+                }
+            }
+
+            Box(
+                modifier = Modifier.weight(0.3f).fillMaxHeight(),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                assistCommentator(state)
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // assistCommentator(state)
         // FOOTER + INPUT
         Row(
             modifier = Modifier.fillMaxWidth().background(Color(0xFFF5F5F5)).padding(16.dp),
@@ -375,43 +393,50 @@ fun assistCommentator(state: UIState) {
                 AssistMood.SURPRISED -> "assist/surprised.png"
             }
 
-        Box(
-            modifier =
-                Modifier
-                    .size(550.dp)
-                    .background(Color.White.copy(alpha = 0.5f), CircleShape),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Bottom,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Image(
-                painter = painterResource(imagePath),
-                contentDescription = "Assistant Commentator",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        }
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color.White,
+                            RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp),
+                        )
+                        .border(
+                            2.dp,
+                            Color.Magenta,
+                            RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp),
+                        )
+                        .padding(16.dp),
+            ) {
+                Text(
+                    text = state.assistMessage,
+                    style = MaterialTheme.typography.body1,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.DarkGray,
+                )
+            }
 
-        Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-        Box(
-            modifier =
-                Modifier
-                    .widthIn(max = 300.dp)
-                    .background(
-                        Color.White,
-                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp),
-                    )
-                    .border(
-                        2.dp,
-                        Color.Magenta,
-                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp),
-                    )
-                    .padding(16.dp),
-        ) {
-            Text(
-                text = state.assistMessage,
-                style = MaterialTheme.typography.body1,
-                fontWeight = FontWeight.Bold,
-                color = Color.DarkGray,
-            )
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f) // squared box
+                        .clip(RoundedCornerShape(16.dp)),
+            ) {
+                Image(
+                    painter = painterResource(imagePath),
+                    contentDescription = "Assistant",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
         }
     }
 }
