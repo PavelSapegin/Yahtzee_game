@@ -17,6 +17,8 @@ import java.util.UUID.randomUUID
 // Enum and data class for UI state management
 enum class AppScreen { SETUP, GAME, LEADERBOARD }
 
+enum class AssistMood { NEUTRAL, HAPPY, ANGRY, EXCITED, SURPRISED }
+
 data class UIState(
     val currentScreen: AppScreen = AppScreen.SETUP,
     val pendingPlayers: Map<UUID, String> = emptyMap(),
@@ -26,6 +28,8 @@ data class UIState(
     val totalScores: Map<UUID, Int> = emptyMap(),
     val finalLeaderBoard: List<PlayerProfile> = emptyList(),
     val isGameOver: Boolean = false,
+    val assistMessage: String = "Hi, I will help you to count score ;)",
+    val assistMood: AssistMood = AssistMood.NEUTRAL,
 )
 
 // ViewModel for the Yahtzee assistant
@@ -69,22 +73,39 @@ class YahtzeeViewModel(
     ) {
         val dice = parseDiceInput(diceUnput)
         if (dice == null) {
-            showError("Invalid format! Write 5 numbers splitting by spaces.")
+            // showError("Invalid format! Write 5 numbers splitting by spaces.")
+            _uiState.value =
+                _uiState.value.copy(
+                    errorText = "Invalid format!",
+                    assistMessage = "Damn... Write 5 numbers splitting by spaces.",
+                    assistMood = AssistMood.ANGRY,
+                )
             return
         }
 
+        val currentPlayerMove = gameSession.currentState.currentPlayerId
+        val scoreBefore = gameSession.currentState.players[currentPlayerMove]?.currentScore ?: 0
         val request =
             MoveRequest(gameSession.currentState.currentPlayerId, dice, cat)
 
         when (val result = gameSession.registerMove(request)) {
             is MoveResult.Success ->
                 {
+                    val scoreAfter = gameSession.currentState.players[currentPlayerMove]?.currentScore ?: 0
+                    val points = scoreAfter - scoreBefore
                     clearError()
+                    generateComment(points, cat)
                     syncGameState()
                 }
             is MoveResult.Error ->
                 {
-                    showError(result.errorMessage ?: "Unknown error")
+                    // showError(result.errorMessage ?: "Unknown error")
+                    _uiState.value =
+                        _uiState.value.copy(
+                            errorText = result.errorMessage ?: "Unknown error",
+                            assistMessage = "Hmmm... ${result.errorMessage}",
+                            assistMood = AssistMood.SURPRISED,
+                        )
                 }
         }
     }
@@ -95,6 +116,11 @@ class YahtzeeViewModel(
             gameSession.undoLastMove()
             clearError()
             syncGameState()
+            _uiState.value =
+                _uiState.value.copy(
+                    assistMessage = "Ничего, все в этом мире ошибаются, кроме меня, конечно же",
+                    assistMood = AssistMood.SURPRISED,
+                )
         } catch (e: Exception) {
             showError("Nothing to cancel!")
         }
@@ -125,13 +151,29 @@ class YahtzeeViewModel(
             )
     }
 
+    private fun generateComment(
+        points: Int,
+        cat: ScoreCategory,
+    ) {
+        val (msg, mood) =
+            when {
+                cat == ScoreCategory.YAHTZEE && points > 0 ->
+                    "Имбэленс" to AssistMood.EXCITED
+                points >= 30 -> "Крутой ход" to AssistMood.EXCITED
+                points == 0 -> "Как так" to AssistMood.SURPRISED
+                points > 0 -> "Хорошая работа. Записала $points очков." to AssistMood.HAPPY
+                else -> "Работаем" to AssistMood.NEUTRAL
+            }
+
+        _uiState.value = _uiState.value.copy(assistMessage = msg, assistMood = mood)
+    }
+
     // Private helper function to synchronize the UI state with the current game state
     private fun syncGameState() {
         val state = gameSession.currentState
         val newScoreBoard = mutableMapOf<UUID, Map<ScoreCategory, String>>()
         val newTotals = mutableMapOf<UUID, Int>()
         val pMap = _uiState.value.pendingPlayers
-        // if (state.status != GameStatus.FINISHED) {
         for ((playerId, sheet) in gameSession.board.playerSheets) {
             val column = mutableMapOf<ScoreCategory, String>()
 
@@ -144,7 +186,6 @@ class YahtzeeViewModel(
             newTotals[playerId] =
                 state.players[playerId]?.currentScore ?: 0
         }
-        // }
 
         _uiState.value =
             _uiState.value.copy(

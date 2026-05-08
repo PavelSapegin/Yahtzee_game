@@ -1,5 +1,6 @@
 package gui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -151,6 +155,7 @@ fun gameScreen(
 
         Spacer(Modifier.height(16.dp))
 
+        // assistCommentator(state)
         // FOOTER + INPUT
         Row(
             modifier = Modifier.fillMaxWidth().background(Color(0xFFF5F5F5)).padding(16.dp),
@@ -350,6 +355,63 @@ fun leaderBoardTable(state: UIState) {
         state.finalLeaderBoard.forEachIndexed { index, profile ->
             Text("${index + 1}. ${profile.name} | ELO: ${profile.eloRating} | WINS: ${profile.winRate}%", fontSize = 20.sp)
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+fun assistCommentator(state: UIState) {
+    Row(
+        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        val imagePath =
+            when (state.assistMood) {
+                AssistMood.NEUTRAL -> "assist/neutral.png"
+                AssistMood.HAPPY -> "assist/happy.png"
+                AssistMood.ANGRY -> "assist/angry.png"
+                AssistMood.EXCITED -> "assist/excited.png"
+                AssistMood.SURPRISED -> "assist/surprised.png"
+            }
+
+        Box(
+            modifier =
+                Modifier
+                    .size(550.dp)
+                    .background(Color.White.copy(alpha = 0.5f), CircleShape),
+        ) {
+            Image(
+                painter = painterResource(imagePath),
+                contentDescription = "Assistant Commentator",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        }
+
+        Spacer(Modifier.width(16.dp))
+
+        Box(
+            modifier =
+                Modifier
+                    .widthIn(max = 300.dp)
+                    .background(
+                        Color.White,
+                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp),
+                    )
+                    .border(
+                        2.dp,
+                        Color.Magenta,
+                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp),
+                    )
+                    .padding(16.dp),
+        ) {
+            Text(
+                text = state.assistMessage,
+                style = MaterialTheme.typography.body1,
+                fontWeight = FontWeight.Bold,
+                color = Color.DarkGray,
+            )
         }
     }
 }
