@@ -118,7 +118,7 @@ class YahtzeeViewModel(
             syncGameState()
             _uiState.value =
                 _uiState.value.copy(
-                    assistMessage = "Ничего, все в этом мире ошибаются, кроме меня, конечно же",
+                    assistMessage = "It's okay, everyone in this world makes mistakes, except me, of course.",
                     assistMood = AssistMood.SURPRISED,
                 )
         } catch (e: Exception) {
@@ -134,7 +134,6 @@ class YahtzeeViewModel(
 
             _uiState.value =
                 _uiState.value.copy(
-                    // currentScreen = AppScreen.LEADERBOARD,
                     finalLeaderBoard =
                         statsManager.getLeaderBoard().sortedByDescending { it.eloRating },
                 )
@@ -158,11 +157,11 @@ class YahtzeeViewModel(
         val (msg, mood) =
             when {
                 cat == ScoreCategory.YAHTZEE && points > 0 ->
-                    "Имбэленс" to AssistMood.EXCITED
-                points >= 30 -> "Крутой ход" to AssistMood.EXCITED
-                points == 0 -> "Как так" to AssistMood.SURPRISED
-                points > 0 -> "Хорошая работа. Записала $points очков." to AssistMood.HAPPY
-                else -> "Работаем" to AssistMood.NEUTRAL
+                    "incredible" to AssistMood.EXCITED
+                points >= 30 -> "Cool move" to AssistMood.EXCITED
+                points == 0 -> "Oh no..." to AssistMood.SURPRISED
+                points > 0 -> "Good job. Recorded $points points." to AssistMood.HAPPY
+                else -> "Accepted" to AssistMood.NEUTRAL
             }
 
         _uiState.value = _uiState.value.copy(assistMessage = msg, assistMood = mood)
@@ -208,7 +207,7 @@ class YahtzeeViewModel(
     // Private helper function to parse dice input from the user
     private fun parseDiceInput(input: String): List<Int>? {
         return try {
-            val dice = input.trim().split(Regex("\\s+")).map { it.toInt() }
+            val dice = input.trim().map { it.digitToInt() }
             if (dice.size == 5 && dice.all { it in 1..6 }) {
                 dice
             } else {

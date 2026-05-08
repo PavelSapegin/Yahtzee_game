@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
@@ -42,6 +43,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import domain.models.ScoreCategory
@@ -172,7 +174,7 @@ fun gameScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        // Spacer(Modifier.height(16.dp))
 
         // FOOTER + INPUT
         Row(
@@ -191,13 +193,12 @@ fun gameScreen(
 
                 // Center input
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    visualDiceRow(diceInput) // Отрисовка кубиков!
+                    Text("Click and write numbers:", color = Color.Gray, fontSize = 12.sp)
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = diceInput,
+
+                    diceInputField(
+                        diceInput = diceInput,
                         onValueChange = { diceInput = it },
-                        label = { Text("Input dice:") },
-                        modifier = Modifier.width(200.dp),
                     )
                 }
 
@@ -380,7 +381,7 @@ fun leaderBoardTable(state: UIState) {
 @Composable
 fun assistCommentator(state: UIState) {
     Row(
-        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+        modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp).fillMaxWidth(),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.Center,
     ) {
@@ -439,4 +440,58 @@ fun assistCommentator(state: UIState) {
             }
         }
     }
+}
+
+@Composable
+fun diceInputField(
+    diceInput: String,
+    onValueChange: (String) -> Unit,
+) {
+    BasicTextField(
+        value = diceInput,
+        onValueChange = { newValue ->
+            val filteredValues = newValue.filter { it in '1'..'6' }.take(5)
+            onValueChange(filteredValues)
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        decorationBox = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (i in 0 until 5) {
+                    val c = diceInput.getOrNull(i)
+                    val isNextToType = i == diceInput.length
+
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(50.dp)
+                                .border(
+                                    width = if (isNextToType) 2.dp else 1.dp,
+                                    color =
+                                        if (isNextToType) {
+                                            Color.Blue
+                                        } else if (c != null) {
+                                            Color.Black
+                                        } else {
+                                            Color.Gray
+                                        },
+                                    shape = RoundedCornerShape(8.dp),
+                                )
+                                .padding(4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (c != null) {
+                            diceDots(c.digitToInt())
+                        } else if (isNextToType) {
+                            Text(
+                                "_",
+                                color = Color.Gray,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
