@@ -68,10 +68,6 @@ classDiagram
         + getLeaderBoard() List~PlayerProfile~
     }
 
-    class InMemoryStatsManager {
-        - playerRepo: IPlayerRepository
-    }
-
     class GameStatus {
         <<enumeration>>
         IN_PROGRESS, FINISHED
@@ -167,19 +163,11 @@ classDiagram
         + save(profile: PlayerProfile)
         + getAll() List~PlayerProfile~
     }
-    
-    class InMemoryPlayerRepository {
-        - storage: MutableMap~UUID, PlayerProfile~
-    }
 
     class IGameRepository {
         <<interface>>
         + saveRecord(record: GameRecord)
         + getHistoryByPlayer(playerId: UUID) List~GameRecord~
-    }
-    
-    class InMemoryGameRepository {
-        - storage: MutableMap~UUID, GameRecord~
     }
 
     class PlayerProfile {
@@ -212,10 +200,7 @@ classDiagram
     ScoreSheet o-- ScoreCategory : uses
 
     IGameSession <|.. GameSessionManager
-    IStatsService <|.. InMemoryStatsManager
     IRulesEngine <|.. YahtzeeRulesEngine
-    IPlayerRepository <|.. InMemoryPlayerRepository
-    IGameRepository <|.. InMemoryGameRepository
     
     GameSessionManager o-- IRulesEngine
     GameSessionManager o-- IGameRepository
@@ -223,8 +208,8 @@ classDiagram
     GameSessionManager *-- BoardState
     GameSessionManager *-- "0..*" MoveRecord
     
-    InMemoryStatsManager o-- IPlayerRepository
-    InMemoryStatsManager ..> GameRecord : processes
+    IStatsService ..> IPlayerRepository : uses
+    IStatsService ..> GameRecord : processes
     
     IRulesEngine ..> ScoreEvent : creates
     IRulesEngine ..> BoardState : inspects
