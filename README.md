@@ -3,48 +3,105 @@
 ```mermaid
 classDiagram
 
-    %% APPLICATION
+    %% --- PRESENTATION (GUI Layer) ---
+
+    class YahtzeeViewModel {
+        - _uiState: MutableStateFlow~UIState~
+        + uiState: StateFlow~UIState~
+        + addPlayer(name: String)
+        + startGame()
+        + submitMove(diceInput: String, cat: ScoreCategory)
+        + undoMove()
+        + endGame()
+        + showLeaderBoard()
+    }
+
+    class UIState {
+        <<data class>>
+        + currentScreen: AppScreen
+        + pendingPlayers: Map~UUID, String~
+        + currentPlayerName: String
+        + errorText: String
+        + scoreBoard: Map~UUID, Map~ScoreCategory, String~~
+        + totalScores: Map~UUID, Int~
+        + finalLeaderBoard: List~PlayerProfile~
+        + isGameOver: Boolean
+        + assistMessage: String
+        + assistMood: AssistMood
+    }
+
+    class AppScreen {
+        <<enumeration>>
+        SETUP, GAME, LEADERBOARD
+    }
+
+    class AssistMood {
+        <<enumeration>>
+        NEUTRAL, HAPPY, ANGRY, EXCITED, SURPRISED
+    }
+
+    %% --- APPLICATION ---
 
     class IGameSession {
         <<interface>>
+        + currentState: SessionState
+        + board: BoardState
         + startGame(playerIds: List~UUID~)
-        + registerMove(request: MoveRequest) MoveResult
+        + registerMove(move: MoveRequest) MoveResult
         + undoLastMove()
         + endGame() GameRecord
-        + getCurrentState() SessionState
     }
 
     class GameSessionManager {
         - referee: IRulesEngine
         - gameRepo: IGameRepository
-        - currentState: SessionState
-        - moveHistory: MutableList~MoveRecord~
+        + currentState: SessionState
+        + board: BoardState
+        + moveHistory: MutableList~MoveRecord~
+        - currentPlayerIdx: Int
     }
 
     class IStatsService {
         <<interface>>
         + processGameResult(record: GameRecord)
         + getPlayerStats(playerId: UUID) PlayerProfile
-        + getLeaderboard() List~PlayerProfile~
+        + getLeaderBoard() List~PlayerProfile~
     }
 
-    class StatsManager {
+    class InMemoryStatsManager {
         - playerRepo: IPlayerRepository
     }
 
-    %% DOMAIN 
+    class GameStatus {
+        <<enumeration>>
+        IN_PROGRESS, FINISHED
+    }
+
+    %% --- DOMAIN ---
 
     class IRulesEngine {
         <<interface>>
-        + validateMove(board: BoardState, move: MoveRequest): ValidationResult
-        + calculateIntermediateScore(board: BoardState, move: MoveRequest): ScoreEvent
-        + calculateFinalScore(board: BoardState): List~ScoreEvent~
+        + validateMove(board: BoardState, move: MoveRequest) ValidationResult
+        + calculateIntermediateScore(board: BoardState, move: MoveRequest) ScoreEvent
+        + calculateFinalScore(board: BoardState) List~ScoreEvent~
+    }
+    
+    class YahtzeeRulesEngine {
+        - upperCategories: List~ScoreCategory~
+        - lowerCategories: List~ScoreCategory~
+    }
+
+    class ValidationResult {
+        <<sealed>>
+        Correct
+        Error(message: String)
     }
 
     class BoardState {
-        - playerSheets: MutableMap~UUID, ScoreSheet~
+        + players: List~UUID~
+        + playerSheets: MutableMap~UUID, ScoreSheet~
         + applyMove(move: MoveRequest, points: Int)
-        + revertMove(move: MoveRecord)
+        + revertMove(record: MoveRecord)
     }
 
     class ScoreSheet {
@@ -54,19 +111,20 @@ classDiagram
 
     class ScoreCategory {
         <<enumeration>>
-        ONES, TWOS, THREES...
-        FULL_HOUSE, YAHTZEE, CHANCE
+        ONES, TWOS, THREES, FOURS, FIFTHS, SIXES...
+        THREEKIND, FOURKIND, FULL_HOUSE, SMALL_STRAIGHT, LARGE_STRAIGHT, YAHTZEE, CHANCE, BONUS
     }
 
     class MoveResult {
         <<sealed>>
-        + isSuccess: Boolean
         + errorMessage: String?
+        Success
+        Error(message: String)
     }
 
     class MoveRequest {
         <<data class>>
-        + playerId: UUID
+        + playerID: UUID
         + finalDice: List~Int~ 
         + targetCategory: ScoreCategory 
     }
@@ -76,7 +134,7 @@ classDiagram
         + moveNumber: Int
         + requestData: MoveRequest
         + timestamp: LocalDateTime
-        + pointsScored: Int
+        + pointScored: Int
     }
 
     class SessionState {
@@ -95,11 +153,13 @@ classDiagram
 
     class ScoreEvent {
         <<data class>>
-        + playerId: UUID
+        + playerID: UUID
         + points: Int
         + category: ScoreCategory
         + isBonusApplied: Boolean 
     }
+
+    %% --- DATA / REPOSITORIES ---
 
     class IPlayerRepository {
         <<interface>>
@@ -107,17 +167,25 @@ classDiagram
         + save(profile: PlayerProfile)
         + getAll() List~PlayerProfile~
     }
+    
+    class InMemoryPlayerRepository {
+        - storage: MutableMap~UUID, PlayerProfile~
+    }
 
     class IGameRepository {
         <<interface>>
         + saveRecord(record: GameRecord)
         + getHistoryByPlayer(playerId: UUID) List~GameRecord~
     }
+    
+    class InMemoryGameRepository {
+        - storage: MutableMap~UUID, GameRecord~
+    }
 
     class PlayerProfile {
         <<entity / data class>>
         + id: UUID
-        + username: String
+        + name: String
         + eloRating: Int
         + gamesPlayed: Int
         + winRate: Float
@@ -138,11 +206,16 @@ classDiagram
         + rank: Int
     }
 
+    %% --- RELATIONSHIPS ---
+
     BoardState *-- "*" ScoreSheet : contains
     ScoreSheet o-- ScoreCategory : uses
 
     IGameSession <|.. GameSessionManager
-    IStatsService <|.. StatsManager
+    IStatsService <|.. InMemoryStatsManager
+    IRulesEngine <|.. YahtzeeRulesEngine
+    IPlayerRepository <|.. InMemoryPlayerRepository
+    IGameRepository <|.. InMemoryGameRepository
     
     GameSessionManager o-- IRulesEngine
     GameSessionManager o-- IGameRepository
@@ -150,17 +223,26 @@ classDiagram
     GameSessionManager *-- BoardState
     GameSessionManager *-- "0..*" MoveRecord
     
-    StatsManager o-- IPlayerRepository
-    StatsManager ..> GameRecord : processes
+    InMemoryStatsManager o-- IPlayerRepository
+    InMemoryStatsManager ..> GameRecord : processes
     
     IRulesEngine ..> ScoreEvent : creates
     IRulesEngine ..> BoardState : inspects
     IRulesEngine ..> MoveRequest : validates
+    IRulesEngine ..> ValidationResult : returns
     
     SessionState *-- "*" PlayerInGameState
+    SessionState o-- GameStatus
     GameRecord *-- "*" MoveRecord
     GameRecord *-- "*" PlayerResult
     IGameSession ..> MoveResult : returns
     IPlayerRepository ..> PlayerProfile : manages
     IStatsService ..> PlayerProfile : uses/returns
+    
+    YahtzeeViewModel o-- IGameSession
+    YahtzeeViewModel o-- IPlayerRepository
+    YahtzeeViewModel o-- IStatsService
+    YahtzeeViewModel *-- UIState
+    UIState o-- AppScreen
+    UIState o-- AssistMood
 ```
