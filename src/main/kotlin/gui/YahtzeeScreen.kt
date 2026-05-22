@@ -372,7 +372,7 @@ fun leaderBoardTable(state: UIState) {
         Spacer(Modifier.height(24.dp))
 
         state.finalLeaderBoard.forEachIndexed { index, profile ->
-            Text("${index + 1}. ${profile.name} | ELO: ${profile.eloRating} | WINS: ${profile.winRate}%", fontSize = 20.sp)
+            Text("${index + 1}. ${profile.name} | ELO: ${profile.eloRating} | WINS: ${profile.winRate * 100}%", fontSize = 20.sp)
             Spacer(Modifier.height(8.dp))
         }
     }
