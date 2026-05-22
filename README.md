@@ -1,4 +1,4 @@
-### Yahtzee assistant
+****### Yahtzee assistant
 
 ```mermaid
 classDiagram
@@ -36,7 +36,7 @@ classDiagram
 
     class IRulesEngine {
         <<interface>>
-        + validateMove(board: BoardState, move: MoveRequest): Boolean
+        + validateMove(board: BoardState, move: MoveRequest): ValidationResult
         + calculateIntermediateScore(board: BoardState, move: MoveRequest): ScoreEvent
         + calculateFinalScore(board: BoardState): List~ScoreEvent~
     }
