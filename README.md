@@ -1,232 +1,182 @@
-### Yahtzee assistant
+# Yahtzee Assistant
 
-```mermaid
-classDiagram
+Десктопное приложение для администрирования игры Yahtzee с интерактивным ассистентом.
 
-    %% --- PRESENTATION (GUI Layer) ---
+---
 
-    class YahtzeeViewModel {
-        - _uiState: MutableStateFlow~UIState~
-        + uiState: StateFlow~UIState~
-        + addPlayer(name: String)
-        + startGame()
-        + submitMove(diceInput: String, cat: ScoreCategory)
-        + undoMove()
-        + endGame()
-        + showLeaderBoard()
-    }
+## Описание
 
-    class UIState {
-        <<data class>>
-        + currentScreen: AppScreen
-        + pendingPlayers: Map~UUID, String~
-        + currentPlayerName: String
-        + errorText: String
-        + scoreBoard: Map~UUID, Map~ScoreCategory, String~~
-        + totalScores: Map~UUID, Int~
-        + finalLeaderBoard: List~PlayerProfile~
-        + isGameOver: Boolean
-        + assistMessage: String
-        + assistMood: AssistMood
-    }
+Yahtzee Assistant — это реализация администрирование партий настольной игры Yahtzee для нескольких игроков с умным ассистентом, который комментирует ходы, отслеживает очки, ведёт историю партий и хранит рейтинг игроков.
 
-    class AppScreen {
-        <<enumeration>>
-        SETUP, GAME, LEADERBOARD
-    }
+---
 
-    class AssistMood {
-        <<enumeration>>
-        NEUTRAL, HAPPY, ANGRY, EXCITED, SURPRISED
-    }
+## Стек технологий
 
-    %% --- APPLICATION ---
+- **Kotlin** — основной язык разработки
+- **Compose Multiplatform (Desktop)** — декларативный UI
+- **Exposed** — ORM для работы с базой данных
+- **SQLite** — персистентное хранение данных об игроках и партиях
+- **JUnit 5 / Kotlin Test** — модульные и интеграционные тесты
 
-    class IGameSession {
-        <<interface>>
-        + currentState: SessionState
-        + board: BoardState
-        + startGame(playerIds: List~UUID~)
-        + registerMove(move: MoveRequest) MoveResult
-        + undoLastMove()
-        + endGame() GameRecord
-    }
+---
 
-    class GameSessionManager {
-        - referee: IRulesEngine
-        - gameRepo: IGameRepository
-        + currentState: SessionState
-        + board: BoardState
-        + moveHistory: MutableList~MoveRecord~
-        - currentPlayerIdx: Int
-    }
+## Архитектура
 
-    class IStatsService {
-        <<interface>>
-        + processGameResult(record: GameRecord)
-        + getPlayerStats(playerId: UUID) PlayerProfile
-        + getLeaderBoard() List~PlayerProfile~
-    }
+Проект строго следует принципу разделения ответственности и разбит на четыре слоя.
 
-    class GameStatus {
-        <<enumeration>>
-        IN_PROGRESS, FINISHED
-    }
-
-
-    class IRulesEngine {
-        <<interface>>
-        + validateMove(board: BoardState, move: MoveRequest) ValidationResult
-        + calculateIntermediateScore(board: BoardState, move: MoveRequest) ScoreEvent
-        + calculateFinalScore(board: BoardState) List~ScoreEvent~
-    }
-    
-    class YahtzeeRulesEngine {
-        - upperCategories: List~ScoreCategory~
-        - lowerCategories: List~ScoreCategory~
-    }
-
-    class ValidationResult {
-        <<sealed>>
-        Correct
-        Error(message: String)
-    }
-
-    class BoardState {
-        + players: List~UUID~
-        + playerSheets: MutableMap~UUID, ScoreSheet~
-        + applyMove(move: MoveRequest, points: Int)
-        + revertMove(record: MoveRecord)
-    }
-
-    class ScoreSheet {
-        <<data class>>
-        + filledCategories: MutableMap~ScoreCategory, Int~
-    }
-
-    class ScoreCategory {
-        <<enumeration>>
-        ONES, TWOS, THREES, FOURS, FIFTHS, SIXES...
-        THREEKIND, FOURKIND, FULL_HOUSE, SMALL_STRAIGHT, LARGE_STRAIGHT, YAHTZEE, CHANCE, BONUS
-    }
-
-    class MoveResult {
-        <<sealed>>
-        + errorMessage: String?
-        Success
-        Error(message: String)
-    }
-
-    class MoveRequest {
-        <<data class>>
-        + playerID: UUID
-        + finalDice: List~Int~ 
-        + targetCategory: ScoreCategory 
-    }
-
-    class MoveRecord {
-        <<data class>>
-        + moveNumber: Int
-        + requestData: MoveRequest
-        + timestamp: LocalDateTime
-        + pointScored: Int
-    }
-
-    class SessionState {
-        <<data class>>
-        + gameId: UUID
-        + status: GameStatus
-        + currentPlayerId: UUID
-        + turnOrder: List~UUID~
-        + players: MutableMap~UUID, PlayerInGameState~
-    }
-
-    class PlayerInGameState {
-        <<data class>>
-        + currentScore: Int
-    }
-
-    class ScoreEvent {
-        <<data class>>
-        + playerID: UUID
-        + points: Int
-        + category: ScoreCategory
-        + isBonusApplied: Boolean 
-    }
-
-    %% --- DATA / REPOSITORIES ---
-
-    class IPlayerRepository {
-        <<interface>>
-        + getById(id: UUID) PlayerProfile? 
-        + save(profile: PlayerProfile)
-        + getAll() List~PlayerProfile~
-    }
-
-    class IGameRepository {
-        <<interface>>
-        + saveRecord(record: GameRecord)
-        + getHistoryByPlayer(playerId: UUID) List~GameRecord~
-    }
-
-    class PlayerProfile {
-        <<entity / data class>>
-        + id: UUID
-        + name: String
-        + eloRating: Int
-        + gamesPlayed: Int
-        + winRate: Float
-    }
-
-    class GameRecord {
-        <<entity / data class>>
-        + gameId: UUID
-        + date: LocalDateTime
-        + finalScores: List~PlayerResult~
-        + history: List~MoveRecord~
-    }
-    
-    class PlayerResult {
-        <<data class>>
-        + playerId: UUID
-        + score: Int
-        + rank: Int
-    }
-
-    %% --- RELATIONSHIPS ---
-
-    BoardState *-- "*" ScoreSheet : contains
-    ScoreSheet o-- ScoreCategory : uses
-
-    IGameSession <|.. GameSessionManager
-    IRulesEngine <|.. YahtzeeRulesEngine
-    
-    GameSessionManager o-- IRulesEngine
-    GameSessionManager o-- IGameRepository
-    GameSessionManager *-- SessionState
-    GameSessionManager *-- BoardState
-    GameSessionManager *-- "0..*" MoveRecord
-    
-    IStatsService ..> IPlayerRepository : uses
-    IStatsService ..> GameRecord : processes
-    
-    IRulesEngine ..> ScoreEvent : creates
-    IRulesEngine ..> BoardState : inspects
-    IRulesEngine ..> MoveRequest : validates
-    IRulesEngine ..> ValidationResult : returns
-    
-    SessionState *-- "*" PlayerInGameState
-    SessionState o-- GameStatus
-    GameRecord *-- "*" MoveRecord
-    GameRecord *-- "*" PlayerResult
-    IGameSession ..> MoveResult : returns
-    IPlayerRepository ..> PlayerProfile : manages
-    IStatsService ..> PlayerProfile : uses/returns
-    
-    YahtzeeViewModel o-- IGameSession
-    YahtzeeViewModel o-- IPlayerRepository
-    YahtzeeViewModel o-- IStatsService
-    YahtzeeViewModel *-- UIState
-    UIState o-- AppScreen
-    UIState o-- AssistMood
 ```
+presentation  →  application  →  domain  →  data
+```
+
+**`domain`** — чистая бизнес-логика без зависимостей:
+- `YahtzeeRulesEngine` — подсчёт очков, начисление бонусов, валидация ходов
+- `BoardState`, `ScoreSheet`, `MoveRequest`, `ScoreCategory` — доменные модели
+
+**`application`** — оркестрация игровой сессии:
+- `GameSessionManager` — управление очерёдностью ходов, отмена ходов, завершение партии
+- `IGameSession` — интерфейс сессии, абстрагирующий слой от UI
+
+**`data`** — хранение:
+- `SqliteGameRepository` / `SqlitePlayerRepository` — реализации через Exposed
+- `InMemoryGameRepository` / `InMemoryPlayerRepository` — in-memory варианты для тестов
+- `InMemoryStatsManager` — ELO-рейтинг и win rate
+
+**`gui`** — презентационный слой:
+- `YahtzeeViewModel` — единственная точка взаимодействия UI с бизнес-логикой
+- `YahtzeeScreen.kt` — функции для отображения всех трёх экранов
+
+### Диаграммы классов
+
+<details>
+<summary>GUI / ViewModel слой</summary>
+
+![GUI Layer](diagrams/gui.png)
+
+</details>
+
+<details>
+<summary>Domain слой (Rules Engine)</summary>
+
+![Domain Layer](diagrams/new_domain.png)
+
+</details>
+
+<details>
+<summary>Полная диаграмма системы</summary>
+
+![Full Diagram](diagrams/new_global.png)
+
+</details>
+
+<details>
+<summary>Архитектура сервисов</summary>
+
+![Architecture](diagrams/tru_new_diad.png)
+
+</details>
+
+---
+
+## Экраны приложения
+
+**Setup** — регистрация игроков (новых или существующих по имени), запуск партии.
+
+**Game** — основной экран с таблицей очков для всех игроков, полем ввода кубиков и панелью ассистента.
+
+**Leaderboard** — финальная таблица с ELO-рейтингом и win rate всех когда-либо зарегистрированных игроков.
+
+---
+
+## Ассистент
+
+Персонаж-комментатор меняет настроение (`AssistMood`) в зависимости от игровой ситуации:
+
+| Mood | Когда появляется |
+|------|-----------------|
+| `NEUTRAL` | Стандартный ход |
+| `HAPPY` | Набрано > 0 очков |
+| `EXCITED` | Yahtzee или ≥ 30 очков |
+| `SURPRISED` | Ошибка, undo или 0 очков |
+| `ANGRY` | Некорректный формат ввода |
+
+---
+
+## Правила подсчёта очков
+
+**Верхняя секция** — сумма выпавших граней нужного номинала (1–6).  
+**Бонус верхней секции** — +35 очков, если сумма верхней секции ≥ 63.
+
+| Категория | Условие | Очки |
+|-----------|---------|------|
+| Three of a Kind | ≥ 3 одинаковых | Сумма всех кубиков |
+| Four of a Kind | ≥ 4 одинаковых | Сумма всех кубиков |
+| Full House | 3 + 2 (или 5 одинаковых) | 25 |
+| Small Straight | Последовательность из 4 | 30 |
+| Large Straight | Последовательность из 5 | 40 |
+| Yahtzee | 5 одинаковых | 50 |
+| Chance | Любые кубики | Сумма всех кубиков |
+
+**Правило Joker** — повторный Yahtzee даёт +100 очков бонуса к любой выбранной категории.
+
+---
+
+## Структура проекта
+
+```
+src/
+├── main/kotlin/
+│   ├── application/
+│   │   ├── interfaces/       # IGameSession
+│   │   ├── models/           # SessionState, MoveResult, GameStatus
+│   │   └── services/         # GameSessionManager
+│   ├── data/
+│   │   ├── database/         # Exposed таблицы (SQLite схема)
+│   │   ├── models/           # PlayerProfile, GameRecord, PlayerResult
+│   │   └── repositories/     # Sqlite- и InMemory-реализации
+│   ├── domain/
+│   │   ├── engine/           # IRulesEngine, YahtzeeRulesEngine
+│   │   └── models/           # BoardState, ScoreSheet, MoveRequest, ScoreCategory и др.
+│   └── gui/
+│       ├── ViewModel.kt      # YahtzeeViewModel, UIState, AppScreen, AssistMood
+│       └── YahtzeeScreen.kt  # Composable UI
+└── test/kotlin/
+    ├── YahtzeeRulesEngineTest.kt
+    ├── GameSessionManagerTest.kt
+    ├── GameIntegrationTest.kt
+    ├── YahtzeeViewModelTest.kt
+    └── SqlitePlayerRepositoryTest.kt
+```
+
+---
+
+## Запуск
+
+**Требования:** JDK 17+, Gradle 8+
+
+```bash
+# Клонировать репозиторий
+git clone <https://github.com/PavelSapegin/Yahtzee_game>
+cd Yahtzee_game
+
+# Запустить приложение
+./gradlew run
+
+# Запустить тесты
+./gradlew test
+```
+
+База данных `yahtzee.db` создаётся автоматически в рабочей директории при первом запуске.
+
+---
+
+## Тесты
+
+Проект покрыт тестами на каждом слое:
+
+- **`YahtzeeRulesEngineTest`** — unit-тесты всех категорий
+- **`GameSessionManagerTest`** — смена хода, отмена, защита от хода чужим игроком
+- **`GameIntegrationTest`** — полная партия от старта до обновления ELO двух игроков
+- **`YahtzeeViewModelTest`** — реакция UI-состояния на Yahtzee и повторную категорию
+- **`SqlitePlayerRepositoryTest`** — сохранение и обновление профилей через in-memory SQLite
+
+---
