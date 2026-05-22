@@ -1,4 +1,4 @@
-****### Yahtzee assistant
+### Yahtzee assistant
 
 ```mermaid
 classDiagram
