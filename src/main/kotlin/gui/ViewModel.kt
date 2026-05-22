@@ -82,7 +82,6 @@ class YahtzeeViewModel(
     ) {
         val dice = parseDiceInput(diceUnput)
         if (dice == null) {
-            // showError("Invalid format! Write 5 numbers splitting by spaces.")
             _uiState.value =
                 _uiState.value.copy(
                     errorText = "Invalid format!",
@@ -108,7 +107,6 @@ class YahtzeeViewModel(
                 }
             is MoveResult.Error ->
                 {
-                    // showError(result.errorMessage ?: "Unknown error")
                     _uiState.value =
                         _uiState.value.copy(
                             errorText = result.errorMessage ?: "Unknown error",
