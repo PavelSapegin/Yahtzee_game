@@ -10,7 +10,7 @@ interface IRulesEngine {
         board: BoardState,
         move: MoveRequest,
     ): ValidationResult
-
+    
     fun calculateIntermediateScore(
         board: BoardState,
         move: MoveRequest,
