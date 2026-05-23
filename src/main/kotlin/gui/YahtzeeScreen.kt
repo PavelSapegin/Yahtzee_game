@@ -47,7 +47,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import domain.models.ScoreCategory
-import java.lang.Exception
 
 // Main UI component that renders different screens based on the current state
 @Composable
@@ -174,8 +173,6 @@ fun gameScreen(
             }
         }
 
-        // Spacer(Modifier.height(16.dp))
-
         // FOOTER + INPUT
         Row(
             modifier = Modifier.fillMaxWidth().background(Color(0xFFF5F5F5)).padding(16.dp),
@@ -224,24 +221,6 @@ fun gameScreen(
                 }
                 Spacer(Modifier.weight(1f))
             }
-        }
-    }
-}
-
-// Composable functions for rendering dice and score board
-@Composable
-fun visualDiceRow(input: String) {
-    val numbers =
-        try {
-            input.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.map { it.toInt() }
-        } catch (e: Exception) {
-            emptyList()
-        }
-
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (i in 0 until 5) {
-            val num = numbers.getOrNull(i)
-            diceFace(value = num)
         }
     }
 }
@@ -372,7 +351,7 @@ fun leaderBoardTable(state: UIState) {
         Spacer(Modifier.height(24.dp))
 
         state.finalLeaderBoard.forEachIndexed { index, profile ->
-            Text("${index + 1}. ${profile.name} | ELO: ${profile.eloRating} | WINS: ${profile.winRate}%", fontSize = 20.sp)
+            Text("${index + 1}. ${profile.name} | ELO: ${profile.eloRating} | WINS: ${profile.winRate * 100}%", fontSize = 20.sp)
             Spacer(Modifier.height(8.dp))
         }
     }

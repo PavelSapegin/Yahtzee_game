@@ -59,4 +59,31 @@ class YahtzeeRulesEngineTest {
         tempBoard.applyMove(request, 5)
         assertNotEquals(engine.validateMove(tempBoard, request), ValidationResult.Correct)
     }
+
+    @Test
+    fun `Joker rule - second Yahtzee should give 100 bonus points`() {
+        val firstYahtzee = MoveRequest(tempPlayerId, listOf(5, 5, 5, 5, 5), ScoreCategory.YAHTZEE)
+        tempBoard.applyMove(firstYahtzee, 50)
+
+        val secondYahtzee = MoveRequest(tempPlayerId, listOf(5, 5, 5, 5, 5), ScoreCategory.FULL_HOUSE)
+
+        val score = engine.calculateIntermediateScore(tempBoard, secondYahtzee)
+
+        assertEquals(125, score.points)
+        assertEquals(true, score.isBonusApplied)
+    }
+
+    @Test
+    fun `Upper section bonus - should award 35 points if sum is 63 or more`() {
+        // TOTAL SUM = 63
+        tempBoard.applyMove(MoveRequest(tempPlayerId, listOf(3, 3, 3, 3, 3), ScoreCategory.THREES), 15)
+        tempBoard.applyMove(MoveRequest(tempPlayerId, listOf(4, 4, 4, 4, 4), ScoreCategory.FOURS), 20)
+        tempBoard.applyMove(MoveRequest(tempPlayerId, listOf(5, 5, 5, 5, 5), ScoreCategory.FIFTHS), 25)
+        tempBoard.applyMove(MoveRequest(tempPlayerId, listOf(1, 1, 1, 6, 6), ScoreCategory.ONES), 3)
+
+        val finalScores = engine.calculateFinalScore(tempBoard)
+        val bonusEvent = finalScores.find { it.category == ScoreCategory.BONUS }
+
+        assertEquals(35, bonusEvent?.points)
+    }
 }
